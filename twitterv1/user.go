@@ -7,6 +7,7 @@ import (
 
 	blueskyapi "github.com/Preloading/TwitterAPIBridge/bluesky"
 	"github.com/Preloading/TwitterAPIBridge/bridge"
+	"github.com/Preloading/TwitterAPIBridge/db_controller"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -91,7 +92,7 @@ func UsersLookup(c *fiber.Ctx) error {
 		return ReturnError(c, "Max number of times to look up reached (100)", 195, 403)
 	}
 
-	_, pds, _, oauthToken, err := GetAuthFromReq(c)
+	my_did, pds, _, oauthToken, err := GetAuthFromReq(c)
 
 	if err != nil {
 		blankstring := ""
@@ -106,6 +107,14 @@ func UsersLookup(c *fiber.Ctx) error {
 		fmt.Println("Error:", err)
 		return HandleBlueskyError(c, err.Error(), "app.bsky.actor.getProfiles", UsersLookup)
 	}
+
+	if my_did != nil {
+		for _, user := range users {
+			notification_state := db_controller.IsUserNotifiedOfUserPost(*my_did, user.DID)
+			user.Notifications = &notification_state
+		}
+	}
+
 	return EncodeAndSend(c, users)
 }
 
@@ -206,6 +215,100 @@ func UserRelationships(c *fiber.Ctx) error {
 
 }
 
+func UpdateFriendship(c *fiber.Ctx) error {
+	// auth
+	my_did, pds, _, oauthToken, err := GetAuthFromReq(c)
+	if err != nil {
+		return MissingAuth(c, err)
+	}
+
+	// lets get the user params
+	actor := c.FormValue("user_id")
+	if actor == "" {
+		actor = c.FormValue("screen_name")
+		if actor == "" {
+			return ReturnError(c, "No user was specified", 195, 403)
+		}
+	} else {
+		id, err := strconv.ParseInt(actor, 10, 64)
+		if err != nil {
+			return ReturnError(c, "Invalid ID format", 195, 403)
+		}
+		actorPtr, err := bridge.TwitterIDToBlueSky(&id)
+		if err != nil {
+			return ReturnError(c, "ID not found.", 144, fiber.StatusNotFound)
+		}
+		if actorPtr == nil {
+			return ReturnError(c, "ID not found.", 144, fiber.StatusNotFound)
+		}
+		actor = *actorPtr
+	}
+
+	targetUser, err := blueskyapi.GetUserInfo(*pds, *oauthToken, actor, false)
+	if err != nil {
+		return HandleBlueskyError(c, err.Error(), "app.bsky.actor.getProfile", GetUsersRelationship)
+	}
+	// Possible optimization: if the source user is us, we can skip the api call, and just use viewer info
+	sourceUser, err := blueskyapi.GetUserInfo(*pds, *oauthToken, *my_did, false)
+	if err != nil {
+		return HandleBlueskyError(c, err.Error(), "app.bsky.actor.getProfile", GetUsersRelationship)
+	}
+
+	targetDID, err := bridge.TwitterIDToBlueSky(&targetUser.ID) // not the most efficient way to do this, but it works
+	if err != nil {
+		return ReturnError(c, "Some wonky stuff happened. (Failed to convert target user ID to BlueSky ID)", 131, 500)
+	}
+
+	relationship, err := blueskyapi.GetRelationships(*pds, *oauthToken, *my_did, []string{*targetDID})
+	if err != nil {
+		fmt.Println("Error:", err)
+		return HandleBlueskyError(c, err.Error(), "app.bsky.graph.getRelationships", GetUsersRelationship)
+	}
+
+	// check device
+	isUserNotified := db_controller.IsUserNotifiedOfUserPost(*my_did, *targetDID)
+	changeToNotifiedState := c.FormValue("device")
+
+	if isUserNotified {
+		if changeToNotifiedState == "false" {
+			isUserNotified = false
+			db_controller.DeleteMonitoringOfUser(*my_did, *targetDID)
+		}
+	} else {
+		if changeToNotifiedState == "true" {
+			isUserNotified = true
+			db_controller.CreateUserToMonitor(*my_did, *targetDID)
+		}
+	}
+
+	defaultTrue := true // holy fuck i hate this
+
+	friendship := bridge.SourceTargetFriendship{
+		Target: bridge.UserFriendship{
+			ID:         targetUser.ID,
+			IDStr:      strconv.FormatInt(targetUser.ID, 10),
+			ScreenName: targetUser.ScreenName,
+			Following:  relationship.Relationships[0].FollowedBy != "",
+			FollowedBy: relationship.Relationships[0].Following != "",
+		},
+		Source: bridge.UserFriendship{
+			ID:                   sourceUser.ID,
+			IDStr:                strconv.FormatInt(sourceUser.ID, 10),
+			ScreenName:           sourceUser.ScreenName,
+			Following:            relationship.Relationships[0].Following != "",
+			FollowedBy:           relationship.Relationships[0].FollowedBy != "",
+			CanDM:                &defaultTrue,
+			NotificationsEnabled: &isUserNotified,
+		},
+	}
+
+	root := bridge.SourceTargetFriendshipRoot{
+		Relation: friendship,
+	}
+
+	return EncodeAndSend(c, root)
+}
+
 // Gets the relationship between two users
 // https://web.archive.org/web/20120516154953/https://dev.twitter.com/docs/api/1/get/friendships/show
 func GetUsersRelationship(c *fiber.Ctx) error {
@@ -253,7 +356,7 @@ func GetUsersRelationship(c *fiber.Ctx) error {
 	}
 
 	// auth
-	_, pds, _, oauthToken, err := GetAuthFromReq(c)
+	my_did, pds, _, oauthToken, err := GetAuthFromReq(c)
 	if err != nil {
 		blankstring := "" // I. Hate. This.
 		oauthToken = &blankstring
@@ -285,6 +388,14 @@ func GetUsersRelationship(c *fiber.Ctx) error {
 		fmt.Println("Error:", err)
 		return HandleBlueskyError(c, err.Error(), "app.bsky.graph.getRelationships", GetUsersRelationship)
 	}
+
+	var isUserNotified *bool
+
+	if my_did != nil && *my_did == *sourceDID {
+		isUserNotifiedPtr := db_controller.IsUserNotifiedOfUserPost(*my_did, *targetDID)
+		isUserNotified = &isUserNotifiedPtr
+	}
+
 	defaultTrue := true // holy fuck i hate this
 
 	friendship := bridge.SourceTargetFriendship{
@@ -296,12 +407,13 @@ func GetUsersRelationship(c *fiber.Ctx) error {
 			FollowedBy: relationship.Relationships[0].Following != "",
 		},
 		Source: bridge.UserFriendship{
-			ID:         sourceUser.ID,
-			IDStr:      strconv.FormatInt(sourceUser.ID, 10),
-			ScreenName: sourceUser.ScreenName,
-			Following:  relationship.Relationships[0].Following != "",
-			FollowedBy: relationship.Relationships[0].FollowedBy != "",
-			CanDM:      &defaultTrue,
+			ID:                   sourceUser.ID,
+			IDStr:                strconv.FormatInt(sourceUser.ID, 10),
+			ScreenName:           sourceUser.ScreenName,
+			Following:            relationship.Relationships[0].Following != "",
+			FollowedBy:           relationship.Relationships[0].FollowedBy != "",
+			CanDM:                &defaultTrue,
+			NotificationsEnabled: isUserNotified,
 		},
 	}
 

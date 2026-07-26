@@ -127,6 +127,8 @@ type TwitterUser struct {
 	DefaultProfile      bool   `json:"default_profile" xml:"default_profile"`
 	DefaultProfileImage bool   `json:"default_profile_image" xml:"default_profile_image"`
 	Status              *Tweet `json:"status,omitempty" xml:"status,omitempty"`
+
+	DID string `json:"-" xml:"-"` // used for internal purposes
 }
 
 type TwitterActivitiySummary struct {

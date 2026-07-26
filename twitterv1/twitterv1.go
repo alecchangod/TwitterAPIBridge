@@ -128,6 +128,7 @@ func InitServer(config *config.Config) {
 	AddV1Path(app.Post, "/users/lookup.:filetype", UsersLookup)
 	AddV1Path(app.Get, "/friendships/lookup.:filetype", UserRelationships)
 	AddV1Path(app.Get, "/friendships/show.:filetype", GetUsersRelationship)
+	AddV1Path(app.Post, "/friendships/update.:filetype", UpdateFriendship)
 	AddV1Path(app.Get, "/favorites/:id.:filetype", likes_timeline)
 	AddV1Path(app.Post, "/friendships/create.:filetype", FollowUser)
 	AddV1Path(app.Post, "/friendships/destroy.:filetype", UnfollowUserForm)

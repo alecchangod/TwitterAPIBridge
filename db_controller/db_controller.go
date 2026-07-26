@@ -104,6 +104,11 @@ type NotificationTokens struct {
 	LastUpdated   time.Time
 }
 
+type UserNotificationSubscription struct {
+	UserDIDToMonitor string `gorm:"column:user_did_to_monitor;index"`
+	UserDIDToNotify  string `gorm:"column:user_did_to_notify;index"`
+}
+
 var (
 	db  *gorm.DB
 	cfg config.Config
@@ -147,6 +152,7 @@ func InitDB(_cfg config.Config) {
 	db.AutoMigrate(&AnalyticData{})
 	db.AutoMigrate(&ShortLink{})
 	db.AutoMigrate(&NotificationTokens{})
+	db.AutoMigrate(&UserNotificationSubscription{})
 
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_tokens_user_did_token_uuid ON tokens(user_did, token_uuid)`) // annoying!
 
@@ -497,6 +503,67 @@ func GetAllActivePushNotifications() ([]NotificationTokens, error) {
 	return fullPushTokens, nil
 }
 
+func GetAllActiveUserNotificationSubscriptions() ([]UserNotificationSubscription, error) {
+	var fullPushTokens []UserNotificationSubscription
+	if err := db.Find(&fullPushTokens).Error; err != nil {
+		return nil, err
+	}
+	return fullPushTokens, nil
+}
+
+func GetUserDIDsMonitoringDID(did string) ([]UserNotificationSubscription, error) {
+	var fullPushTokens []UserNotificationSubscription
+	if err := db.Find(&fullPushTokens, "user_did_to_monitor = ?", did).Error; err != nil {
+		return nil, err
+	}
+	return fullPushTokens, nil
+}
+
+func GetUsersToDeliverTweetNotificationsForUser(did string) ([]UserNotificationSubscription, error) {
+	var fullPushTokens []UserNotificationSubscription
+	if err := db.Find(&fullPushTokens, "user_did_to_notify = ?", did).Error; err != nil {
+		return nil, err
+	}
+	return fullPushTokens, nil
+}
+
+func IsUserNotifiedOfUserPost(notified string, monitored string) bool {
+	var exists bool
+
+	err := db.Model(&UserNotificationSubscription{}).
+		Select("count(*) > 0").
+		Where("user_did_to_notify = ? AND user_did_to_monitor = ?", notified, monitored).
+		Find(&exists).Error
+
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
+func CreateUserToMonitor(notified string, monitored string) error {
+	storedData := UserNotificationSubscription{
+		UserDIDToMonitor: monitored,
+		UserDIDToNotify:  notified,
+	}
+
+	result := db.Create(&storedData)
+
+	if result.Error != nil {
+		fmt.Println("Error:", result.Error)
+	}
+
+	return result.Error
+}
+
+func DeleteMonitoringOfUser(notified string, monitored string) error {
+	if err := db.Delete(&UserNotificationSubscription{}, "user_did_to_monitor = ? AND user_did_to_notify = ?", monitored, notified).Error; err != nil {
+		return err
+	}
+	return nil
+
+}
+
 func CreateModifyRegisteredPushNotifications(t NotificationTokens) error {
 	// Check if a record already exists for this user_did
 	var existing NotificationTokens
@@ -555,7 +622,6 @@ func DeleteeeeeeeeeeeeRegistrationForPushNotificationsWithDid(did string) error 
 
 }
 
-// this should not be did but i am lazy
 func DeleteeeeeeeeeeeeRegistrationForPushNotificationsWithRoutingInfo(routing_key []byte, routing_server_address string) error {
 	if err := db.Delete(&NotificationTokens{}, "routing_key = ? AND server_address = ?", routing_key, routing_server_address).Error; err != nil {
 		return err

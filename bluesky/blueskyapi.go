@@ -729,6 +729,8 @@ func AuthorTTB(author User) *bridge.TwitterUser {
 		StatusesCount:          author.PostsCount,
 		//FavouritesCount:        author.,
 		ScreenName: author.Handle,
+
+		DID: author.DID,
 	}
 	return user
 }

@@ -43,14 +43,14 @@ type JetstreamPostOutput struct {
 }
 
 var (
-	mentionedDIDs               []string
-	mentionedFollowingOnlyDIDs  []string
-	retweetDIDs                 []string
-	retweetFollowingOnlyDIDs    []string
-	favouritesDIDs              []string
-	favouritesFollowingOnlyDIDs []string
-	newFollowers                []string
-	// posterDIDs                  []string
+	mentionedDIDs                          []string
+	mentionedFollowingOnlyDIDs             []string
+	retweetDIDs                            []string
+	retweetFollowingOnlyDIDs               []string
+	favouritesDIDs                         []string
+	favouritesFollowingOnlyDIDs            []string
+	newFollowers                           []string
+	posterDIDs                             []string
 	lastUpdatedNotificationTime            time.Time
 	lastCheckedForPushNotificationFeedback time.Time
 )
@@ -79,7 +79,7 @@ func RunNotifications(cfg config.Config) {
 				tFavouritesDIDs              []string
 				tFavouritesFollowingOnlyDIDs []string
 				tNewFollowers                []string
-				// tPosterDIDs                  []string
+				tPosterDIDs                  []string
 			)
 
 			for _, notificationToSplit := range latestPushNotificationRound {
@@ -109,6 +109,18 @@ func RunNotifications(cfg config.Config) {
 				// 	tFavouritesFollowingOnlyDIDs = append(tFavouritesFollowingOnlyDIDs, notificationToSplit.UserDID)
 				// }
 			}
+
+			latestUserSubscriptionRound, err := db_controller.GetAllActiveUserNotificationSubscriptions()
+			if err != nil {
+				panic(err)
+			}
+
+			for _, notificationToSplit := range latestUserSubscriptionRound {
+				if !slices.Contains(tPosterDIDs, notificationToSplit.UserDIDToMonitor) {
+					tPosterDIDs = append(tPosterDIDs, notificationToSplit.UserDIDToMonitor)
+				}
+			}
+
 			mentionedDIDs = tMentionedDIDs
 			mentionedFollowingOnlyDIDs = tMentionedFollowingOnlyDIDs
 			retweetDIDs = tRetweetDIDs
@@ -116,9 +128,9 @@ func RunNotifications(cfg config.Config) {
 			favouritesDIDs = tFavouritesDIDs
 			favouritesFollowingOnlyDIDs = tFavouritesFollowingOnlyDIDs
 			newFollowers = tNewFollowers
-			// posterDIDs =
+			posterDIDs = tPosterDIDs
 			lastUpdatedNotificationTime = time.Now()
-			for time.Since(lastUpdatedNotificationTime) < 5*time.Minute {
+			for time.Since(lastUpdatedNotificationTime) < 1*time.Minute {
 				time.Sleep(10 * time.Second)
 			}
 		}
@@ -177,9 +189,10 @@ func RunNotifications(cfg config.Config) {
 		switch message.Commit.Collection {
 		case "app.bsky.feed.post":
 			{
-				// if slices.Contains(posterDIDs, message.DID) {
-				// 	fmt.Printf("New Jetstream Message (user): %+v\n", message)
-				// }
+				if slices.Contains(posterDIDs, message.DID) {
+					go sendPushNotificationForMonitoredUser(message.DID, message.Commit.RKey)
+					fmt.Printf("New Jetstream Message (user): %+v\n", message)
+				}
 
 				var record blueskyapi.PostRecord
 				if err := json.Unmarshal(message.Commit.Record, &record); err != nil {
@@ -428,4 +441,44 @@ func sendPushNotificationForPost(did string, typeOfNotification string, didOfPos
 		}
 		fmt.Println("i just send a notification")
 	}
+}
+
+func sendPushNotificationForMonitoredUser(monitoredDID string, rkey string) {
+	accountsMonitoring, err := db_controller.GetUserDIDsMonitoringDID(monitoredDID)
+	if err != nil {
+		return
+	}
+
+	bskyPost, err := blueskyapi.GetPost("https://public.api.bsky.app", "", fmt.Sprintf("at://%s/app.bsky.feed.post/%s", monitoredDID, rkey), 0, 0)
+	if err != nil {
+		return
+	}
+
+	tweet := twitterv1.TranslatePostToTweet(bskyPost.Thread.Post, "", "", "", nil, nil, "", "https://public.api.bsky.app")
+
+	notificationBody := map[string]interface{}{
+		"aps": map[string]interface{}{
+			"alert": fmt.Sprintf("@%s: %s", tweet.User.ScreenName, tweet.Text),
+			"sound": "default",
+		},
+		"A": "T",
+	}
+
+	// our body
+	for _, acc := range accountsMonitoring {
+		pushTokens, err := db_controller.GetPushTokensForDID(acc.UserDIDToNotify)
+		if err != nil {
+			continue
+		}
+		for _, token := range pushTokens {
+			if !getBit(token.EnabledFor, 9) {
+				continue
+			}
+
+			if err := sgn.SendNotification(token.DeviceToken, notificationBody); err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+	}
+
 }
