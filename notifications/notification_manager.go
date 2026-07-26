@@ -307,6 +307,11 @@ func readJetstreamMessages(ws *websocket.Conn, incomingMessages chan JetstreamPo
 // 3. Converting the text into a twitter post
 // 4. Send the twitter post's content as a push notification via SGN.
 func sendPushNotificationForPost(did string, typeOfNotification string, didOfPoster string, rkey string, indexed_at *int64) {
+	notifiedUser, err := blueskyapi.GetUserInfoRaw("https://public.api.bsky.app", "", did)
+	if err != nil {
+		return
+	}
+
 	notificationBody := map[string]interface{}{}
 	// GetPost
 
@@ -335,9 +340,13 @@ func sendPushNotificationForPost(did string, typeOfNotification string, didOfPos
 			// our body
 			notificationBody = map[string]interface{}{
 				"aps": map[string]interface{}{
-					"alert": fmt.Sprintf("Mentioned by @%s: %s", tweet.User.ScreenName, tweet.Text),
+					"alert": map[string]interface{}{
+						"body":     fmt.Sprintf("Mentioned by @%s: %s", tweet.User.ScreenName, tweet.Text),
+						"loc-args": []string{tweet.User.ScreenName, notifiedUser.Handle, tweet.Text, tweet.IDStr},
+					},
 					"sound": "default",
 				},
+				"A": "M",
 			}
 		}
 	case "liked", "liked_following":
@@ -369,9 +378,13 @@ func sendPushNotificationForPost(did string, typeOfNotification string, didOfPos
 			// our body
 			notificationBody = map[string]interface{}{
 				"aps": map[string]interface{}{
-					"alert": fmt.Sprintf("@%s favourited your tweet: %s", bskyUser.ScreenName, tweet.Text), // idk what this is
+					"alert": map[string]interface{}{
+						"body":     fmt.Sprintf("@%s favourited your tweet: %s", bskyUser.ScreenName, tweet.Text),
+						"loc-args": []string{tweet.User.ScreenName, notifiedUser.Handle, tweet.Text, tweet.IDStr},
+					},
 					"sound": "default",
 				},
+				"A": "F",
 			}
 		}
 	case "retweet", "retweet_following":
@@ -409,9 +422,13 @@ func sendPushNotificationForPost(did string, typeOfNotification string, didOfPos
 			// our body
 			notificationBody = map[string]interface{}{
 				"aps": map[string]interface{}{
-					"alert": fmt.Sprintf("@%s: %s", tweet.User.ScreenName, tweet.Text),
+					"alert": map[string]interface{}{
+						"body":     fmt.Sprintf("@%s: %s", tweet.User.ScreenName, tweet.Text),
+						"loc-args": []string{tweet.User.ScreenName, notifiedUser.Handle, tweet.Text, tweet.IDStr},
+					},
 					"sound": "default",
 				},
+				"A": "R",
 			}
 		}
 	case "follow":
@@ -421,12 +438,15 @@ func sendPushNotificationForPost(did string, typeOfNotification string, didOfPos
 				return
 			}
 
-			// our body
 			notificationBody = map[string]interface{}{
 				"aps": map[string]interface{}{
-					"alert": fmt.Sprintf("@%s is now following you!", bskyUser.ScreenName),
+					"alert": map[string]interface{}{
+						"body":     fmt.Sprintf("@%s is now following you!", bskyUser.ScreenName),
+						"loc-args": []string{bskyUser.ScreenName, notifiedUser.Handle},
+					},
 					"sound": "default",
 				},
+				"A": "O",
 			}
 		}
 	}
@@ -456,14 +476,6 @@ func sendPushNotificationForMonitoredUser(monitoredDID string, rkey string) {
 
 	tweet := twitterv1.TranslatePostToTweet(bskyPost.Thread.Post, "", "", "", nil, nil, "", "https://public.api.bsky.app")
 
-	notificationBody := map[string]interface{}{
-		"aps": map[string]interface{}{
-			"alert": fmt.Sprintf("@%s: %s", tweet.User.ScreenName, tweet.Text),
-			"sound": "default",
-		},
-		"A": "T",
-	}
-
 	// our body
 	for _, acc := range accountsMonitoring {
 		pushTokens, err := db_controller.GetPushTokensForDID(acc.UserDIDToNotify)
@@ -473,6 +485,22 @@ func sendPushNotificationForMonitoredUser(monitoredDID string, rkey string) {
 		for _, token := range pushTokens {
 			if !getBit(token.EnabledFor, 9) {
 				continue
+			}
+
+			notifiedUser, err := blueskyapi.GetUserInfoRaw("https://public.api.bsky.app", "", acc.UserDIDToNotify)
+			if err != nil {
+				continue
+			}
+
+			notificationBody := map[string]interface{}{
+				"aps": map[string]interface{}{
+					"alert": map[string]interface{}{
+						"body":     fmt.Sprintf("@%s: %s", tweet.User.ScreenName, tweet.Text),
+						"loc-args": []string{tweet.User.ScreenName, notifiedUser.Handle, tweet.Text, tweet.IDStr},
+					},
+					"sound": "default",
+				},
+				"A": "T",
 			}
 
 			if err := sgn.SendNotification(token.DeviceToken, notificationBody); err != nil {
