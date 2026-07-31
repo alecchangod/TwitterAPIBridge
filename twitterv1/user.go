@@ -718,9 +718,14 @@ func GetStatusesFollows(c *fiber.Ctx) error {
 		twitterUsersConverted = append(twitterUsersConverted, *user)
 	}
 
-	return EncodeAndSend(c, bridge.TwitterUsers{
-		Users: twitterUsersConverted,
-	})
+	if c.Params("filetype") == "xml" {
+		return EncodeAndSend(c, bridge.TwitterUsers{
+			Users: twitterUsersConverted,
+		})
+	} else {
+		return EncodeAndSend(c, twitterUsersConverted)
+	}
+
 }
 
 func GetFollows(c *fiber.Ctx) error {

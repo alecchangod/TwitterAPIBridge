@@ -126,6 +126,116 @@ func InternalSearch(c *fiber.Ctx) error {
 	})
 }
 
+// func Search(c *fiber.Ctx) error {
+// 	q := c.Query("q")
+// 	fmt.Println("Search query:", q)
+// 	q = strings.ReplaceAll(q, "exclude:nativeretweet", "") // i don't think this is translatable
+
+// 	_, pds, _, oauthToken, err := GetAuthFromReq(c)
+// 	if err != nil {
+// 		blankstring := "" // I. Hate. This.
+// 		oauthToken = &blankstring
+// 		pdsPtr := "https://api.bsky.app"
+// 		pds = &pdsPtr
+// 	}
+
+// 	// Pagination
+// 	max_id := c.Query("max_id")
+// 	var until *time.Time
+// 	if max_id != "" {
+// 		maxIDInt, err := strconv.ParseInt(max_id, 10, 64)
+// 		if err != nil {
+// 			return ReturnError(c, "An invalid max_id has been specified", 195, fiber.StatusBadRequest)
+// 		}
+// 		_, until, _, err = bridge.TwitterMsgIdToBluesky(&maxIDInt)
+// 		if err != nil {
+// 			return ReturnError(c, "An invalid max_id has been specified", 195, fiber.StatusBadRequest)
+// 		}
+// 	}
+
+// 	var since *time.Time
+// 	since_id := c.Query("since_id")
+// 	if since_id != "" {
+// 		sinceIDInt, err := strconv.ParseInt(since_id, 10, 64)
+// 		if err != nil {
+// 			return ReturnError(c, "An invalid since_id has been specified", 195, fiber.StatusBadRequest)
+// 		}
+// 		_, until, _, err = bridge.TwitterMsgIdToBluesky(&sinceIDInt)
+// 		if err != nil {
+// 			return ReturnError(c, "An invalid since_id has been specified", 195, fiber.StatusBadRequest)
+// 		}
+// 	}
+
+// 	bskySearch, err := blueskyapi.PostSearch(*pds, *oauthToken, q, since, until)
+
+// 	if err != nil {
+// 		fmt.Println("Error:", err)
+// 		return HandleBlueskyError(c, err.Error(), "app.bsky.feed.searchPosts", InternalSearch)
+// 	}
+
+// 	// Optimization: Get all users at once so we don't have to do it in chunks
+// 	var dids []string
+// 	for _, search := range bskySearch {
+// 		dids = append(dids, search.Author.DID)
+// 	}
+// 	blueskyapi.GetUsersInfo(*pds, *oauthToken, dids, false) // add to cache
+
+// 	replyUrls := []string{}
+
+// 	for _, search := range bskySearch {
+// 		if search.Record.Reply != nil {
+// 			replyUrls = append(replyUrls, search.Record.Reply.Parent.URI)
+// 		}
+// 	}
+
+// 	// Get all the replies
+// 	replyToPostData, err := blueskyapi.GetPosts(*pds, *oauthToken, replyUrls)
+// 	if err != nil {
+// 		fmt.Println("Error:", err)
+// 		return HandleBlueskyError(c, err.Error(), "app.bsky.feed.getPosts", InternalSearch)
+// 	}
+
+// 	// Create a map for quick lookup of reply dates and user IDs
+// 	replyDateMap := make(map[string]time.Time)
+// 	replyUserIdMap := make(map[string]string)
+// 	replyHandleMap := make(map[string]string)
+// 	for _, post := range replyToPostData {
+// 		replyDateMap[post.URI] = post.IndexedAt
+// 		replyUserIdMap[post.URI] = post.Author.DID
+// 		replyHandleMap[post.URI] = post.Author.Handle
+// 	}
+
+// 	// Translate to twitter
+// 	tweets := []bridge.Tweet{}
+// 	for _, search := range bskySearch {
+// 		var replyDate *time.Time
+// 		var replyUserId *string
+// 		var replyUserHandle *string
+// 		if search.Record.Reply != nil {
+// 			if date, exists := replyDateMap[search.Record.Reply.Parent.URI]; exists {
+// 				replyDate = &date
+// 			}
+// 			if userId, exists := replyUserIdMap[search.Record.Reply.Parent.URI]; exists {
+// 				replyUserId = &userId
+// 			}
+// 			if handle, exists := replyHandleMap[search.Record.Reply.Parent.URI]; exists {
+// 				replyUserHandle = &handle
+// 			}
+// 		}
+
+// 		if replyDate == nil {
+// 			tweets = append(tweets, TranslatePostToTweet(search, "", "", "", nil, nil, *oauthToken, *pds))
+// 		} else {
+// 			tweets = append(tweets, TranslatePostToTweet(search, search.Record.Reply.Parent.URI, *replyUserId, *replyUserHandle, replyDate, nil, *oauthToken, *pds))
+// 		}
+
+// 	}
+
+// 	return EncodeAndSend(c, bridge.SearchResult{
+// 		Results: tweets,
+// 	})
+// }
+
 // https://web.archive.org/web/20120313235613/https://dev.twitter.com/docs/api/1/get/trends/%3Awoeid
 // The bluesky feature to make this possible was released 17 hours ago, and is "beta", so this is likely to break
 func trends_woeid(c *fiber.Ctx) error {

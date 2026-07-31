@@ -165,6 +165,8 @@ func InitServer(config *config.Config) {
 	app.Get("/1.1/discovery/universal.:filetype", discovery)
 
 	// search.twitter.com -> /search (for easy patching)
+	// app.Get("/search.:filetype", Search)
+
 	app.Get("/search/trends/:woeid.:filetype", trends_woeid)
 	app.Get("/search/trends/current.:filetype", trends_woeid)
 	// todo: point search, daily and weekly to the relevant functions (when they appear)
@@ -189,6 +191,11 @@ func InitServer(config *config.Config) {
 	AddV1Path(app.Get, "/account/push_destinations/device.:filetype", DevicePushDestinations)
 	AddV1Path(app.Post, "/account/push_destinations.:filetype", UpdatePushNotifications)
 	AddV1Path(app.Post, "/account/push_destinations/destroy.:filetype", RemovePush)
+
+	// a bruh for older versions
+	AddV1Path(app.Post, "/account/apple_push_destinations.:filetype", UpdatePushNotifications)
+	AddV1Path(app.Get, "/account/apple_push_destinations/device.:filetype", DevicePushDestinations)
+	AddV1Path(app.Post, "/account/apple_push_destinations/destroy.:filetype", RemovePush)
 
 	// Legal cuz why not?
 	AddV1Path(app.Get, "/legal/tos.:filetype", TOS)

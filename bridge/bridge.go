@@ -356,6 +356,57 @@ type TwitterRecommendation struct {
 	Token  string      `json:"token" xml:"token"`
 }
 
+type SearchEntry struct {
+	XMLName      xml.Name    `xml:"status" json:"-"`
+	Coordinates  interface{} `json:"coordinates" xml:"coordinates"`
+	Favourited   bool        `json:"favorited" xml:"favorited"`
+	CreatedAt    string      `json:"created_at" xml:"created_at"`
+	Truncated    bool        `json:"truncated" xml:"truncated"`
+	Entities     Entities    `json:"entities" xml:"entities"`
+	Text         string      `json:"text" xml:"text"`
+	Annotations  interface{} `json:"annotations" xml:"annotations"`
+	Contributors interface{} `json:"contributors" xml:"contributors"`
+	ID           int64       `json:"id" xml:"id"`
+	IDStr        string      `json:"id_str" xml:"-"`
+	Geo          interface{} `json:"geo" xml:"geo"`
+	Place        interface{} `json:"place" xml:"place"`
+	User         TwitterUser `json:"user,omitempty" xml:"user,omitempty"`
+	Source       string      `json:"source" xml:"source"`
+
+	// Reply stuff
+	InReplyToUserID      *int64  `json:"in_reply_to_user_id" xml:"in_reply_to_user_id"`
+	InReplyToUserIDStr   *string `json:"in_reply_to_user_id_str" xml:"in_reply_to_user_id_str"`
+	InReplyToStatusID    *int64  `json:"in_reply_to_status_id" xml:"in_reply_to_status_id"`
+	InReplyToStatusIDStr *string `json:"in_reply_to_status_id_str" xml:"in_reply_to_status_id_str"`
+	InReplyToScreenName  *string `json:"in_reply_to_screen_name" xml:"in_reply_to_screen_name"`
+
+	// The following aren't found in home_timeline, but can be found when directly fetching a tweet.
+
+	PossiblySensitive bool `json:"possibly_sensitive" xml:"possibly_sensitive"`
+
+	// Tweet... stats?
+	RetweetCount int `json:"retweet_count" xml:"retweet_count"`
+
+	// Our user's interaction with the tweet
+	Retweeted          bool                `json:"retweeted" xml:"retweeted"`
+	RetweetedStatus    *RetweetedTweet     `json:"retweeted_status,omitempty" xml:"retweeted_status,omitempty"`
+	CurrentUserRetweet *CurrentUserRetweet `json:"current_user_retweet,omitempty" xml:"current_user_retweet,omitempty"`
+}
+
+type SearchResult struct {
+	CompletedIn    float64 `json:"completed_in" xml:"completed_in"`
+	MaxId          int64   `json:"max_id" xml:"max_id"`
+	MaxIdString    int64   `json:"max_id_str" xml:"max_id_str"`
+	NextPage       string  `json:"next_page" xml:"next_page"`
+	Page           int     `json:"page" xml:"page"`
+	Query          string  `json:"query" xml:"query"`
+	RefreshURL     string  `json:"refresh_url" xml:"refresh_url"`
+	Results        []Tweet `json:"results" xml:"results"`
+	ResultsPerPage int     `json:"results_per_page" xml:"results_per_page"`
+	SinceId        int64   `json:"since_id" xml:"since_id"`
+	SinceIdString  int64   `json:"since_id_str" xml:"since_id_str"`
+}
+
 type InternalSearchResult struct {
 	Statuses []Tweet `json:"statuses" xml:"statuses"`
 }
