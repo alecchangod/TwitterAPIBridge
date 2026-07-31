@@ -536,52 +536,6 @@ func UnfollowUserParams(c *fiber.Ctx) error {
 }
 
 // https://web.archive.org/web/20101115102530/http://apiwiki.twitter.com/w/page/22554748/Twitter-REST-API-Method%3a-statuses%C2%A0followers
-// At the moment we are not doing pagination, so this will only return the first ~50 followers.
-func GetStatusesFollowers(c *fiber.Ctx) error {
-	// auth
-	userDID, pds, _, oauthToken, err := GetAuthFromReq(c)
-	if err != nil {
-		return MissingAuth(c, err)
-	}
-
-	// lets go get our user data
-	actorPtr, err := GetUserSpecifiedInRequest(c, userDID)
-	if err != nil {
-		return ReturnError(c, err.Error(), 19, 400)
-	}
-	actor := *actorPtr
-
-	// fetch followers
-	followers, err := blueskyapi.GetFollowers(*pds, *oauthToken, "", actor)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return HandleBlueskyError(c, err.Error(), "app.bsky.graph.getFollowers", GetStatusesFollowers)
-	}
-
-	// convert users into twitter format
-	// This right now doesn't act on pagination, i'll figure that out later
-	var actorsToLookUp []string
-	for _, user := range followers.Followers {
-		actorsToLookUp = append(actorsToLookUp, user.DID)
-	}
-
-	twitterUsers, err := blueskyapi.GetUsersInfo(*pds, *oauthToken, actorsToLookUp, false)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return HandleBlueskyError(c, err.Error(), "app.bsky.actor.getProfiles", GetStatusesFollowers)
-	}
-
-	// Convert []*bridge.TwitterUser to []bridge.TwitterUser
-	var twitterUsersConverted []bridge.TwitterUser
-	for _, user := range twitterUsers {
-		twitterUsersConverted = append(twitterUsersConverted, *user)
-	}
-
-	return EncodeAndSend(c, bridge.TwitterUsers{
-		Users: twitterUsersConverted,
-	})
-}
-
 func GetFollowers(c *fiber.Ctx) error {
 	// auth
 	userDID, pds, _, oauthToken, err := GetAuthFromReq(c)
@@ -675,57 +629,6 @@ func GetFollowers(c *fiber.Ctx) error {
 		NextCursorStr:     strconv.FormatUint(next_cursor, 10),
 		PreviousCursorStr: "0",
 	})
-}
-
-// https://web.archive.org/web/20120407214017/https://dev.twitter.com/docs/api/1/get/statuses/friends
-func GetStatusesFollows(c *fiber.Ctx) error {
-	// auth
-	userDID, pds, _, oauthToken, err := GetAuthFromReq(c)
-	if err != nil {
-		return MissingAuth(c, err)
-	}
-
-	// lets go get our user data
-	actorPtr, err := GetUserSpecifiedInRequest(c, userDID)
-	if err != nil {
-		return ReturnError(c, err.Error(), 19, 400)
-	}
-	actor := *actorPtr
-
-	// fetch follows
-	followers, err := blueskyapi.GetFollows(*pds, *oauthToken, "", actor)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return HandleBlueskyError(c, err.Error(), "app.bsky.graph.getFollows", GetStatusesFollows)
-	}
-
-	// convert users into twitter format
-	// This right now doesn't act on pagination, i'll figure that out later
-	var actorsToLookUp []string
-	for _, user := range followers.Followers {
-		actorsToLookUp = append(actorsToLookUp, user.DID)
-	}
-
-	twitterUsers, err := blueskyapi.GetUsersInfo(*pds, *oauthToken, actorsToLookUp, false)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return HandleBlueskyError(c, err.Error(), "app.bsky.actor.getProfiles", GetStatusesFollows)
-	}
-
-	// Convert []*bridge.TwitterUser to []bridge.TwitterUser
-	var twitterUsersConverted []bridge.TwitterUser
-	for _, user := range twitterUsers {
-		twitterUsersConverted = append(twitterUsersConverted, *user)
-	}
-
-	if c.Params("filetype") == "xml" {
-		return EncodeAndSend(c, bridge.TwitterUsers{
-			Users: twitterUsersConverted,
-		})
-	} else {
-		return EncodeAndSend(c, twitterUsersConverted)
-	}
-
 }
 
 func GetFollows(c *fiber.Ctx) error {
