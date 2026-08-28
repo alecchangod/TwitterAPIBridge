@@ -26,7 +26,10 @@ Twitter API v2 is unlikely to be fixed in the future.
 
 ⭐✅: 5.0.0-5.0.3, 5.0.2+ has the aspect ratio change implemented for the iPhone 5. Note: Long URLs break retrieving parent tweets
 
-❌: 5.0.4+ Uses Twitter API v1.1
+❓: 5.0.4+ Uses Twitter API v1.1
+
+⭐⚠️: 6.13.6, Login works, user timeline, home timeline works, viewing follower/following list work, viewing photos work, viewing tweet works, viewing comments partially working, follow works, and follow suggestion works too. also searching seems to be working with search/universal.json
+*Using patched ipa with custom build of ssl kill switch 2 and custom api
 
 ### Twitter iOS Integration
 
