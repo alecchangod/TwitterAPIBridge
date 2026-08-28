@@ -1,5 +1,5 @@
 # A Twitter Bridge
-## from bluesky to twitter api v1
+## from bluesky to twitter api v1 with experimental support for api v1.1
 ###### This is not affiliated with Twitter (now X) and Bluesky.
 
 ![An iPhone 3G, iPhone 4S, and Nexus 4 showing the Twitter home timeline](https://raw.githubusercontent.com/Preloading/TwitterAPIBridge/refs/heads/main/resources/1.png)
