@@ -18,6 +18,14 @@ https://twb.preloading.dev HTTP & HTTPS, ~~Based on Releases (my instance)~~ (ol
 
 https://ttwb.preloading.dev HTTP & HTTPS, ~~Based on commits (my instance)~~ (old url still works)
 
+
+# Test Instances (Support api v1.1)
+*for testing only, selfhosted. Won't say it's 100% stable as it's still testing but can be used if wanna test
+
+https://twb.alecg.dev HTTP & HTTPS
+
+https://twapi.alecg.dev HTTP & HTTPS (same as twb.alecg.dev just make it the same length as api.twitter.com so patch on twitter app work)
+
 ## Usage
 ### iOS Official App
 1. Install the IPA of your choosing (you can find some here, along with android versions: https://loganserver.net/twitters/, also elon don't sue me pls). At present moment, latest & recommended is 5.0.3 for offical iOS)
