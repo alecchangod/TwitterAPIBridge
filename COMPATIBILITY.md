@@ -28,14 +28,17 @@ Twitter API v2 is unlikely to be fixed in the future.
 
 ❓: 5.0.4+ Uses Twitter API v1.1
 
-⭐⚠️: 6.13.6, Login works, user timeline, home timeline works, viewing follower/following list work, viewing photos work, viewing tweet works, viewing comments partially working, follow works, and follow suggestion works too. also searching seems to be working with search/universal.json
+⭐⚠️: 6.13.6, Login works, user timeline, home timeline works, viewing follower/following list work, viewing photos/tweet/comments works, follow works, and follow suggestion works too. also searching seems to be working with search/universal.json
+*Using patched ipa with custom build of ssl kill switch 2 and custom api
+
+⭐⚠️: 6.66, Login works, home timeline partially works, viewing photos in home timeline work but user icon broken for now and also user timeline. other untested
 *Using patched ipa with custom build of ssl kill switch 2 and custom api
 
 ### Twitter iOS Integration
 
 ✅: iOS 5-7, Works through Bluetweety
 
-❌: iOS 8+, Uses Twitter API v1.1
+❓: iOS 8+, Uses Twitter API v1.1. Will work on it later maybe
 
 ### Tweetie2
 
