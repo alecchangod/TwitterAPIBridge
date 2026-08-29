@@ -22,6 +22,8 @@ https://ttwb.preloading.dev HTTP & HTTPS, ~~Based on commits (my instance)~~ (ol
 # Test Instances (Support api v1.1)
 *for testing only, selfhosted. Won't say it's 100% stable as it's still testing but can be used if wanna test
 
+*using custom [fork](https://github.com/alecchangod/ssl-kill-switch2-for-twitter) of SSL Kill Switch 2 to skip TLS issue with Twitter client
+
 https://twb.alecg.dev HTTP & HTTPS
 
 https://twapi.alecg.dev HTTP & HTTPS (same as twb.alecg.dev just make it the same length as api.twitter.com so patch on twitter app work)
