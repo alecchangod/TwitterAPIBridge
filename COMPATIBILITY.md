@@ -28,11 +28,13 @@ Twitter API v2 is unlikely to be fixed in the future.
 
 ❓: 5.0.4+ Uses Twitter API v1.1
 
-⭐⚠️: 6.13.6, Login works, user timeline, home timeline works, viewing follower/following list work, viewing photos/tweet/comments works, follow works, and follow suggestion works too. also searching seems to be working with search/universal.json. Notification settings fixed. Posting and deleting text tweet works, but posting photo broken for now. Retweet works.
-*Using patched ipa with custom build of ssl kill switch 2 and custom api
+⭐⚠️: 6.13.6, Login works, user timeline, home timeline works, viewing follower/following list work, viewing photos/tweet/comments works, follow works, and follow suggestion works too. also searching seems to be working with search/universal.json. Notification settings fixed. Posting and deleting text tweet works, but posting photo broken for now. Retweet works. Follow/unfollow works, also user follow suggestion working.
 
-⭐⚠️: 6.66, Login works, home timeline works, viewing photos in home timeline and user icon works, user timeline broken. other untested
-*Using patched ipa with custom build of ssl kill switch 2 and custom api
+*Using patched ipa with custom build of ssl kill switch 2
+
+⭐⚠️: 6.66, Login works, home timeline works, viewing photos in home timeline and user icon works, user timeline broken. Follow/unfollow works, also user follow suggestion working. Notification page working. Other untested
+
+*Using patched ipa with custom build of ssl kill switch 2
 
 ### Twitter iOS Integration
 
